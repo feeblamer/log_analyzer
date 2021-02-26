@@ -88,13 +88,12 @@ def parse(log):
 
     Генератор который парсит лог построчно.
     Args:
-        log_data: именнованный кортеж содержащий путь лога, дату в имени лога,
+        log: именнованный кортеж содержащий путь лога, дату в имени лога,
         расширение лога.
     Returns:
-        return: возвращает отчет в видек отсортированного списка словарей
+        return: возвращает отчет в виде отсортированного списка словарей
     """
 
-    #log = open_log(log_data.path, log_data.ext)
     for line in log:
         url_pattern = re.compile(r'(\"(GET|POST)\s)(?P<url>\S+)(\sHTTP/1.[10])')
         request_time_pattern = re.compile(r'\d+\.\d+$')
@@ -167,20 +166,19 @@ def get_report_file_path(report_dir, log_date):
     report_file_path= os.path.join(report_dir, filename)
     return report_file_path
 
-#TODO распарсить аргументы командной строки написать функцию
 
-def merge_config(file_config, config):
+def merge_config(file_config, static_config):
     for key in file_config:
-        config[key] = file_config[key]
-    return config
+        static_config[key] = file_config[key]
+    return static_config
 
 
-def main(**config):
+def main(**kwargs):
 
-    log_data = find_log(config['LOG_DIR'])
+    log_data = find_log(kwargs['LOG_DIR'])
     try:
         report_file = get_report_file_path(
-            config['REPORT_DIR'],
+            kwargs['REPORT_DIR'],
             log_data.date,
         )
     except AttributeError:
@@ -196,20 +194,29 @@ def main(**config):
         logging.info('Get result {}'.format(result[0]))
 
         try:
-            write_report(template_file, report_file, result[:config['REPORT_SIZE']])
+            write_report(template_file, report_file, result[:kwargs['REPORT_SIZE']])
         except IndexError:
             write_report(template_file, report_file, result)
     else:
         logging.info('Отчет по данному логу {} уже существет'.format(log_data.path))
     exit(0)
 
-if __name__ == '__main__':
+def get_cmd_argument(cmd_args):
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('--config', help= 'Задать другой конфигурационный файл')
-    args = args_parser.parse_args()
-    user_config = args.config
-    if user_config != None:
+    args_parser.add_argument('--config', help='Задать другой конфигурационный файл')
+    return args_parser.parse_args(cmd_args)
+
+
+def get_file_config(user_config):
+
+    if user_config is not None:
         with open(user_config) as f:
-            u_conf = {line.split('=')[0]:line.split('=')[1] for line in f}
-        config = merge_config(u_conf, config)
+            file_config  = {line.split('=')[0]:line.split('=')[1] for line in f}
+    return  file_config
+
+if __name__ == '__main__':
+
+    args = get_cmd_argument(sys.arg[1:])
+    config_file = get_file_config(args.config)
+    config = merge_config(config_file, config)
     main(**config)
