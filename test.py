@@ -77,10 +77,79 @@ class TestMiscFunc(unittest.TestCase):
             './log/report-2019.07.22.html'
               )
 
-    def test_merge_config(self):
-        pass
+class TesCommandLineFunc(unittest.TestCase):
 
-class TestParse(unittest.TestCase):
+    def test_merge_config_1(self):
+        static_config = {
+        'REPORT_SIZE': 1000,
+        'REPORT_DIR': './reports',
+        'LOG_DIR': './log',
+        }
+        file_config = {
+        'REPORT_SIZE': 10,
+        'REPORT_DIR': './REP1',
+        'LOG_DIR': './LOG1',
+        }
+        merged_config = log_analyzer.merge_config(file_config, static_config)
+        self.assertEqual(
+            merged_config,
+            file_config,
+        )
 
-    def test_parse(self):
-        pass
+    def test_merge_config_2(self):
+        static_config = {
+            'REPORT_SIZE': 1000,
+            'REPORT_DIR': './reports',
+            'LOG_DIR': './log',
+        }
+        file_config = {
+            'REPORT_DIR': './REP2',
+            'LOG_DIR': './LOG2',
+        }
+        merged_config = log_analyzer.merge_config(file_config, static_config)
+
+        self.assertEqual(
+            merged_config,
+                {
+                   'REPORT_SIZE': 1000,
+                   'REPORT_DIR': './REP2',
+                   'LOG_DIR': './LOG2',
+                },
+            )
+
+
+    def test_merge_config_3(self):
+        static_config = {
+            'REPORT_SIZE': 1000,
+            'REPORT_DIR': './reports',
+            'LOG_DIR': './log',
+        }
+        file_config = {
+            'LOG_DIR': './LOG3',
+        }
+        merged_config = log_analyzer.merge_config(file_config, static_config)
+
+        self.assertEqual(
+            merged_config,
+            {
+                'REPORT_SIZE': 1000,
+                'REPORT_DIR': './reports',
+                'LOG_DIR': './LOG3',
+            },
+        )
+
+    def test_merge_config_4(self):
+        static_config = {
+            'REPORT_SIZE': 1000,
+            'REPORT_DIR': './reports',
+            'LOG_DIR': './log',
+        }
+        file_config = {}
+
+        merged_config = log_analyzer.merge_config(file_config, static_config)
+
+        self.assertEqual(
+            merged_config,
+            merged_config,
+        )
+    )
