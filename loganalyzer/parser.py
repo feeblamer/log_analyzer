@@ -10,7 +10,7 @@ class Parser:
 
     def __init__(
             self,
-            log:Log,
+            log,
             ):
         self.log = log
 
@@ -18,17 +18,23 @@ class Parser:
         return self
 
     def __next__(self):
-        try:
-            url, request_time = self._parse_line(log.__next__())
+        next_iter = self.log.__next__()
+        fields = self._parse_line(next_iter)
+        if fields is not None:
+            url, request_time = fields
+            print(url, request_time, self)
             return url, request_time
-        except Exception:
-            pass
+        else:
+            return '-', '-'
 
     @staticmethod
     def _parse_line(line,
                     reg_exps=reg_exps,
                     ):
         fields = reg_exps.search(line)
-        url = fields.group('url')
-        request_time = fields.group('request_time')
-        return url, request_time
+        try:
+            url = fields.group('url')
+            request_time = fields.group('request_time')
+            return url, request_time
+        except AttributeError as e:
+            print(line)

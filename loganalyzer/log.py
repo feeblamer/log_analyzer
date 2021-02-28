@@ -1,3 +1,4 @@
+import gzip
 import os
 import re
 from datetime import date
@@ -23,11 +24,13 @@ class Log:
             self.log_date = date(1, 1, 1)
             self._find_log(log_dir)
 
-
+    def _open_log(self):
+        opened_log = gzip.open(self.log_path, 'rb') if self.log_ext == '.gz' else open(self.log_path, 'rb')
+        return opened_log
 
     def __enter__(self):
-       self.opened_file = open(self.log_path, 'r')
-       return self.opened_file
+       self.opened_log = self._open_log()
+       return self
 
     def __exit__(
             self,
@@ -35,13 +38,14 @@ class Log:
             exc_value=None,
             traceback=None,
             ):
-        self.opened_file.close()
+        self.opened_log.close()
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return self.opened_file.__next__()
+        line = self.opened_log.__next__()
+        return line.decode('utf-8', 'rplace')
 
     def __repr__(self):
         return '<Log object iterator>'
@@ -52,26 +56,29 @@ class Log:
             log_name_pattern=log_name_pattern,
             log_date_pattern=log_date_pattern,
             ):
-
+        print(file)
         name_log = log_name_pattern.search(file)
-        date_iso_format = log_date_pattern.sub(
-            r'\g<year>-\g<month>-\<day>',
-            name_log.group('date'),
+        log_date = log_date_pattern.search(
+        name_log.group('date')
         )
-        try:
-            log_date = date.fromisoformat(date_iso_format)
-            log_extension = name_log.group('ext')
-            return log_date, log_extension
-        except AttributeError:
-            pass
-        except ValueError:
-            pass
+        dict_date = log_date.groupdict()
+        log_date = date(
+                int(dict_date['year']),
+                int(dict_date['month']),
+                int(dict_date['day']),
+                )
+        log_extension = name_log.group('ext')
+        return log_date, log_extension
 
     def _find_log(self, log_dir):
         for path, _, files in os.walk(log_dir, topdown=True):
+            print(files)
             for f in files:
+                print(f)
                 log_date, extension = self._parse_filename(f)
                 if self.log_date < log_date:
                     self.log_date = log_date
                     self.log_path = os.path.join(path, f)
                     self.log_ext = extension
+
+  
