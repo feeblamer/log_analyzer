@@ -57,3 +57,4 @@ class Analyzer:
                     'time_med': self.time_med(url),
                 }
             )
+        return self.result
