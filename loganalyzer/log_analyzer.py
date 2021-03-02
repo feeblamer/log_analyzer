@@ -20,7 +20,6 @@ from string import Template
 import argparse
 import json
 
-
 config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
@@ -28,6 +27,7 @@ config = {
 }
 
 logging.basicConfig(level=logging.INFO)
+
 
 def find_log(log_dir):
     """Поиск последнего лога.
@@ -39,7 +39,7 @@ def find_log(log_dir):
         return: именованый кортеж содержащий путь лога, дату в имени лога,
         расширение лога.
     """
-    #logging.info('Trying to find last log ...\n')
+    # logging.info('Trying to find last log ...\n')
     Log = namedtuple('Log', ['path', 'date', 'ext'])
     log_name_template = re.compile(r'^nginx-access-ui.log-(\d{8})(.gz){0,1}')
     logs = []
@@ -57,7 +57,7 @@ def find_log(log_dir):
                     path=os.path.join(log_path, file),
                     date=log_date,
                     ext=log.groups()[1],
-                    ),
+                ),
                 )
             except AttributeError:
                 pass
@@ -104,17 +104,18 @@ def parse(log):
         except AttributeError:
             pass
 
-def count_time_median(time_sum:list):
+
+def count_time_median(time_sum: list):
     time_sum.sort(reverse=True)
     if len(time_sum) == 1:
         return time_sum[0]
     elif len(time_sum) == 2:
-        return Decimal((time_sum[0] + time_sum[0]) / 2 )
+        return Decimal((time_sum[0] + time_sum[0]) / 2)
     elif len(time_sum) >= 3 and len(time_sum) % 2 == 0:
-        median = Decimal((time_sum[len(time_sum)//2] + time_sum[(len(time_sum)//2) + 1])/2)
+        median = Decimal((time_sum[len(time_sum) // 2] + time_sum[(len(time_sum) // 2) + 1]) / 2)
         return median
     elif len(time_sum) >= 3 and len(time_sum) % 2 == 1:
-        return time_sum[(len(time_sum)//2) + 1]
+        return time_sum[(len(time_sum) // 2) + 1]
 
 
 def count_metrics(metrics):
@@ -129,7 +130,7 @@ def count_metrics(metrics):
             d[url]['count'] += 1
             d[url]['time_requests'].append(Decimal(time_request))
         else:
-            d[url] = {'count':1}
+            d[url] = {'count': 1}
             d[url]['time_requests'] = [Decimal(time_request)]
 
     res = []
@@ -138,11 +139,11 @@ def count_metrics(metrics):
         time_sum = sum(d[url]['time_requests'])
         report_data['count'] = d[url]['count']
         report_data['url'] = url
-        report_data['count_perc'] = str(Decimal((d[url]['count'] / num_requests) * 100)\
-            .quantize(Decimal('.001'),
-                     rounding='ROUND_HALF_UP'))
-        report_data['time_perc'] = str(Decimal((time_sum / sum_time_requests ) * 100)\
-            .quantize(Decimal('.001'), rounding='ROUND_HALF_UP'))
+        report_data['count_perc'] = str(Decimal((d[url]['count'] / num_requests) * 100) \
+                                        .quantize(Decimal('.001'),
+                                                  rounding='ROUND_HALF_UP'))
+        report_data['time_perc'] = str(Decimal((time_sum / sum_time_requests) * 100) \
+                                       .quantize(Decimal('.001'), rounding='ROUND_HALF_UP'))
         report_data['time_averege'] = str(Decimal(time_sum / d[url]['count']))
 
         report_data['time_med'] = str(count_time_median(d[url]['time_requests']))
@@ -154,16 +155,15 @@ def count_metrics(metrics):
 
 
 def write_report(template_file, report_file, data):
-
     with open(template_file, 'r') as file:
         template = Template(file.read())
     with open(report_file, 'wb') as report:
-
         report.write(template.safe_substitute(table_json=json.dumps(data)).encode(encoding='utf-8'))
+
 
 def get_report_file_path(report_dir, log_date):
     filename = 'report-{}.html'.format(log_date.strftime('%Y.%m.%d'))
-    report_file_path= os.path.join(report_dir, filename)
+    report_file_path = os.path.join(report_dir, filename)
     return report_file_path
 
 
@@ -174,7 +174,6 @@ def merge_config(file_config, static_config):
 
 
 def main(**kwargs):
-
     log_data = find_log(kwargs['LOG_DIR'])
     try:
         report_file = get_report_file_path(
@@ -185,7 +184,7 @@ def main(**kwargs):
         exit(0)
 
     template_file = './report.html'
-    if not(os.path.exists(report_file)):
+    if not (os.path.exists(report_file)):
         log = open_log(log_data.path, log_data.ext)
         metrics = parse(log)
         result = count_metrics(
@@ -201,6 +200,7 @@ def main(**kwargs):
         logging.info('Отчет по данному логу {} уже существет'.format(log_data.path))
     exit(0)
 
+
 def get_cmd_argument(cmd_args):
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument('--config', help='Задать другой конфигурационный файл')
@@ -208,14 +208,13 @@ def get_cmd_argument(cmd_args):
 
 
 def get_file_config(user_config):
-
     if user_config is not None:
         with open(user_config) as f:
-            file_config  = {line.split('=')[0]:line.split('=')[1] for line in f}
-    return  file_config
+            file_config = {line.split('=')[0]: line.split('=')[1] for line in f}
+    return file_config
+
 
 if __name__ == '__main__':
-
     args = get_cmd_argument(sys.arg[1:])
     config_file = get_file_config(args.config)
     config = merge_config(config_file, config)

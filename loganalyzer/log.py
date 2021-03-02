@@ -3,20 +3,19 @@ import os
 import re
 from datetime import date
 
-class Log:
-    
-    log_date_pattern = re.compile(
-            r'(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})',
-            )
-    log_name_pattern = re.compile(
-            r'^nginx-access-ui.log-(?P<date>\d{8})(?P<ext>.gz){0,1}',
-            )
 
+class Log:
+    log_date_pattern = re.compile(
+        r'(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})',
+    )
+    log_name_pattern = re.compile(
+        r'^nginx-access-ui.log-(?P<date>\d{8})(?P<ext>.gz){0,1}',
+    )
 
     def __init__(
             self,
             log_dir=None,
-            ):
+    ):
         if log_dir is not None:
             self.log_dir = log_dir
             self.log_path = None
@@ -29,15 +28,15 @@ class Log:
         return opened_log
 
     def __enter__(self):
-       self.opened_log = self._open_log()
-       return self
+        self.opened_log = self._open_log()
+        return self
 
     def __exit__(
             self,
             exc_type=None,
             exc_value=None,
             traceback=None,
-            ):
+    ):
         self.opened_log.close()
 
     def __iter__(self):
@@ -55,18 +54,17 @@ class Log:
             file,
             log_name_pattern=log_name_pattern,
             log_date_pattern=log_date_pattern,
-            ):
-        print(file)
+    ):
         name_log = log_name_pattern.search(file)
         log_date = log_date_pattern.search(
-        name_log.group('date')
+            name_log.group('date')
         )
         dict_date = log_date.groupdict()
         log_date = date(
-                int(dict_date['year']),
-                int(dict_date['month']),
-                int(dict_date['day']),
-                )
+            int(dict_date['year']),
+            int(dict_date['month']),
+            int(dict_date['day']),
+        )
         log_extension = name_log.group('ext')
         return log_date, log_extension
 
@@ -80,5 +78,3 @@ class Log:
                     self.log_date = log_date
                     self.log_path = os.path.join(path, f)
                     self.log_ext = extension
-
-  
