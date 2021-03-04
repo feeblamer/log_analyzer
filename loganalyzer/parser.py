@@ -26,7 +26,7 @@ class Parser:
             print(url, request_time, self)
             return url, request_time
         else:
-            return '-', '-'
+            return '-', '0.0'
 
     @staticmethod
     def _parse_line(line,

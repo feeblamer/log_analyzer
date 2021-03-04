@@ -2,6 +2,11 @@ import gzip
 import os
 import re
 from datetime import date
+import logging 
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class Log:
@@ -16,6 +21,7 @@ class Log:
             self,
             log_dir=None,
     ):
+        logger.debug('Инициализация объекта и его атрибутов')
         if log_dir is not None:
             self.log_dir = log_dir
             self.log_path = None
@@ -28,7 +34,11 @@ class Log:
         return opened_log
 
     def __enter__(self):
-        self.opened_log = self._open_log()
+        if self.log_path is not None:
+            self.opened_log = self._open_log()
+        else:
+            self.opened_log = None
+            logger.info('Файл логов не найден')
         return self
 
     def __exit__(
@@ -37,14 +47,19 @@ class Log:
             exc_value=None,
             traceback=None,
     ):
-        self.opened_log.close()
+        if self.opened_log is not None:
+            self.opened_log.close()
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        line = self.opened_log.__next__()
-        return line.decode('utf-8', 'rplace')
+        
+        if self.opened_log is not None:
+            line = self.opened_log.__next__()
+            return line.decode('utf-8', 'rplace')
+        else:
+            raise StopIteration
 
     def __repr__(self):
         return '<Log object iterator>'
@@ -55,6 +70,8 @@ class Log:
             log_name_pattern=log_name_pattern,
             log_date_pattern=log_date_pattern,
     ):
+
+        logger.debug('Получили файл {}'.format(file))
         name_log = log_name_pattern.search(file)
         log_date = log_date_pattern.search(
             name_log.group('date')
@@ -69,12 +86,15 @@ class Log:
         return log_date, log_extension
 
     def _find_log(self, log_dir):
+        logger.debug('Поиск лога в директории {}'.format(log_dir))
         for path, _, files in os.walk(log_dir, topdown=True):
-            print(files)
+            logger.debug('В дерикории на ходятся файлы {}'.format(files))
             for f in files:
-                print(f)
-                log_date, extension = self._parse_filename(f)
-                if self.log_date < log_date:
-                    self.log_date = log_date
-                    self.log_path = os.path.join(path, f)
-                    self.log_ext = extension
+                try:
+                    log_date, extension = self._parse_filename(f)
+                    if self.log_date < log_date:
+                        self.log_date = log_date
+                        self.log_path = os.path.join(path, f)
+                        self.log_ext = extension
+                except AttributeError as e:
+                    logger.info('Файл логов отсутвует, в директории {}'.format(log_dir))
