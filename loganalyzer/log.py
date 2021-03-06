@@ -57,7 +57,7 @@ class Log:
         
         if self.opened_log is not None:
             line = self.opened_log.__next__()
-            return line.decode('utf-8', 'rplace')
+            return line.decode('utf-8', 'replace')
         else:
             raise StopIteration
 

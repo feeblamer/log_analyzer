@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 from string import Template
+import re
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
-    'LOG_DIR': './log',
+    'LOG_DIR': '/home/otus_student/log',
 }
 
 
@@ -23,6 +24,7 @@ report_template = './report.html'
 
 
 def get_cmd_argument(cmd_args):
+    logger.debug('Получены аргументы {}, {}'.format(cmd_args[0], cmd_args[1]))
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         '--config',
@@ -32,12 +34,20 @@ def get_cmd_argument(cmd_args):
 
 
 def get_file_config(user_config):
-    logger.debug('Задан пользовательбский файл конфигурации {}'.format(user_config))
+    logger.info('Задан пользовательбский файл конфигурации {}'.format(user_config))
     if user_config is not None:
-        with open(user_config) as f:
-            
-            file_config = {line.split('=')[0]: line.split('=')[1].rstrip() for line in f}
-    return file_config
+        file_config = {}
+        with open(user_config, 'r') as f:
+            try:
+                for line in f:
+                    attrs = line.split('=')
+                    if attrs[1].rstrip().isnumeric():
+                        file_config[attrs[0]] = int(attrs[1].rstrip())
+                    else:
+                        file_config[attrs[0]] = attrs[1].rstrip()
+            except IndexError:
+                file_config = {}
+        return file_config
 
 
 def merge_config(file_config, static_config):
@@ -80,6 +90,18 @@ def main(**config):
              report_file,
              report,
             )
+    finally:
+        report = analyzer.get_final_result()
+
+        report_file = get_report_file_path(
+            config['REPORT_DIR'],
+            log.log_date,
+        )
+        write_report(
+            report_template,
+            report_file,
+            report,
+        )
 
 
 if __name__ == "__main__":
@@ -90,4 +112,6 @@ if __name__ == "__main__":
         config_file = get_file_config(args.config)
         logger.info(f'Получен файл {config_file}')
         config = merge_config(config_file, config)
+        main(**config)
+    else:
         main(**config)
