@@ -23,7 +23,6 @@ class Parser:
         fields = self._parse_line(next_iter)
         if fields is not None:
             url, request_time = fields
-            print(url, request_time, self)
             return url, request_time
         else:
             return '-', '0.0'
@@ -38,4 +37,4 @@ class Parser:
             request_time = fields.group('request_time')
             return url, request_time
         except AttributeError as e:
-            print(line)
+            return None

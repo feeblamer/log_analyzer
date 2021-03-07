@@ -24,7 +24,6 @@ report_template = './report.html'
 
 
 def get_cmd_argument(cmd_args):
-    logger.debug('Получены аргументы {}, {}'.format(cmd_args[0], cmd_args[1]))
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument(
         '--config',
@@ -70,47 +69,49 @@ def get_report_file_path(report_dir, log_date):
     return report_file_path
 
 
+
+
 def main(**config):
     logger.info('Создается объект Log')
-    try:
-        with Log(config['LOG_DIR']) as log:
-            parser = Parser(log)
-            analyzer = Analyzer()
-            for u, tr in parser:
-                analyzer.get_temp_result(u, tr)
-    except KeyboardInterrupt:
-        report = analyzer.get_final_result()
-
-        report_file = get_report_file_path(
-            config['REPORT_DIR'],
-            log.log_date,
-             )
-        write_report(
-             report_template,
-             report_file,
-             report,
-            )
-    finally:
-        report = analyzer.get_final_result()
+    with Log(config['LOG_DIR']) as log:
+        
 
         report_file = get_report_file_path(
             config['REPORT_DIR'],
             log.log_date,
         )
-        write_report(
+        
+        if os.path.isfile(report_file):
+            logger.info('Отчет для последнего лога существует: {}'.format(report_file))
+            sys.exit(0)
+        
+        logger.info('Создается парсер лога')        
+        parser = Parser(log)
+        analyzer = Analyzer()
+        try:
+            for u, tr in parser:
+                logger.info('Для {} производится предварительный анализ'.format(u))
+                analyzer.get_temp_result(u, tr)
+        except KeyboardInterrupt:
+            pass
+    logger.info('Формируется итоговый результат')
+    report = analyzer.get_final_result()
+    
+    logger.info('Запись отчета в файл: {}'.format(report_file))
+    write_report(
             report_template,
             report_file,
             report,
         )
-
+    sys.exit(0)
 
 if __name__ == "__main__":
     logger.info('Парсинг аргумениов командной строки')
     args = get_cmd_argument(sys.argv[1:])
     if args.config is not None:
-        logger.info(f'Получены аргументы {args}')
         config_file = get_file_config(args.config)
-        logger.info(f'Получен файл {config_file}')
+        logger.info('Получен файл {}'.format(config_file))
+        logger.info('Слияние статического и польховательского конфигов')
         config = merge_config(config_file, config)
         main(**config)
     else:

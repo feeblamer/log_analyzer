@@ -92,9 +92,9 @@ class Log:
             for f in files:
                 try:
                     log_date, extension = self._parse_filename(f)
-                    if self.log_date < log_date:
-                        self.log_date = log_date
-                        self.log_path = os.path.join(path, f)
-                        self.log_ext = extension
-                except AttributeError as e:
-                    logger.info('Файл логов отсутвует, в директории {}'.format(log_dir))
+                except AttributeError:
+                    continue
+                if self.log_date < log_date:
+                    self.log_date = log_date
+                    self.log_path = os.path.join(path, f)
+                    self.log_ext = extension
