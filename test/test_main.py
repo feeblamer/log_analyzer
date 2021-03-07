@@ -3,7 +3,8 @@ import os
 from loganalyzer.__main__ import get_cmd_argument
 from loganalyzer.__main__ import merge_config
 from loganalyzer.__main__ import get_file_config
-
+from loganalyzer.__main__ import get_report_file_path
+from datetime import date
 
 class TestCmdParsing(unittest.TestCase):
 
@@ -119,10 +120,31 @@ LOG_DIR=log""",
         )
 
 
-class TestReportPreparing(unittest.TestCase):
+class TestReport(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.report_dir = './tets_report'
+        os.mkdir(report_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
 
     def test_get_report_file_path(self):
-        pass
+        log_date = date(2021, 12, 22)
+        report_file = get_report_file_path(
+               cls.report_dir,
+                log_date, 
+                )
+        self.assertEqual(
+               report_file,
+               os.path.join(
+                   report_dir,
+                  'report-{}.html'.format(log_date.strftime('%Y.%m.%d')),
+                   ),
+                )
+
 
     def test_write_report(self):
-        pass
+        pass 
