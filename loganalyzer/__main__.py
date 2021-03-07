@@ -10,8 +10,12 @@ from string import Template
 import re
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+        filename=None,
+        filemode='a',
+        level=logging.INFO,
+        format='[%(asctime)s] %(levelname).1s %(message)s',
+        )
 
 config = {
     'REPORT_SIZE': 1000,
@@ -33,7 +37,7 @@ def get_cmd_argument(cmd_args):
 
 
 def get_file_config(user_config):
-    logger.info('Задан пользовательбский файл конфигурации {}'.format(user_config))
+    logging.info('Задан пользовательбский файл конфигурации {}'.format(user_config))
     if user_config is not None:
         file_config = {}
         with open(user_config, 'r') as f:
@@ -50,7 +54,7 @@ def get_file_config(user_config):
 
 
 def merge_config(file_config, static_config):
-    logger.debug('Получен файл конфигурации {}'.format(file_config))
+    logging.debug('Получен файл конфигурации {}'.format(file_config))
     for key in file_config:
         static_config[key] = file_config[key]
     return static_config
@@ -72,9 +76,11 @@ def get_report_file_path(report_dir, log_date):
 
 
 def main(**config):
-    logger.info('Создается объект Log')
+    logging.info('Создается объект Log')
     with Log(config['LOG_DIR']) as log:
-        
+         
+        if log.log_path is None:
+            sys.exit(0)
 
         report_file = get_report_file_path(
             config['REPORT_DIR'],
@@ -82,22 +88,23 @@ def main(**config):
         )
         
         if os.path.isfile(report_file):
-            logger.info('Отчет для последнего лога существует: {}'.format(report_file))
+            logging.info('Отчет для последнего лога существует: {}'.format(report_file))
             sys.exit(0)
         
-        logger.info('Создается парсер лога')        
+        logging.info('Создается парсер лога')        
         parser = Parser(log)
         analyzer = Analyzer()
         try:
             for u, tr in parser:
-                logger.info('Для {} производится предварительный анализ'.format(u))
+                logging.info('Для {} производится предварительный анализ'.format(u))
                 analyzer.get_temp_result(u, tr)
         except KeyboardInterrupt:
             pass
-    logger.info('Формируется итоговый результат')
+    logging.info('Формируется итоговый результат')
     report = analyzer.get_final_result()
-    
-    logger.info('Запись отчета в файл: {}'.format(report_file))
+    print(report)
+
+    logging.info('Запись отчета в файл: {}'.format(report_file))
     write_report(
             report_template,
             report_file,
@@ -106,12 +113,12 @@ def main(**config):
     sys.exit(0)
 
 if __name__ == "__main__":
-    logger.info('Парсинг аргумениов командной строки')
+    logging.info('Парсинг аргумениов командной строки')
     args = get_cmd_argument(sys.argv[1:])
     if args.config is not None:
         config_file = get_file_config(args.config)
-        logger.info('Получен файл {}'.format(config_file))
-        logger.info('Слияние статического и польховательского конфигов')
+        logging.info('Получен файл {}'.format(config_file))
+        logging.info('Слияние статического и польховательского конфигов')
         config = merge_config(config_file, config)
         main(**config)
     else:

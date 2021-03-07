@@ -5,9 +5,6 @@ from datetime import date
 import logging 
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
 
 class Log:
     log_date_pattern = re.compile(
@@ -21,7 +18,7 @@ class Log:
             self,
             log_dir=None,
     ):
-        logger.debug('Инициализация объекта и его атрибутов')
+        logging.info('Инициализация объекта и его атрибутов')
         if log_dir is not None:
             self.log_dir = log_dir
             self.log_path = None
@@ -38,7 +35,7 @@ class Log:
             self.opened_log = self._open_log()
         else:
             self.opened_log = None
-            logger.info('Файл логов не найден')
+            logging.info('Файл логов не найден')
         return self
 
     def __exit__(
@@ -71,7 +68,7 @@ class Log:
             log_date_pattern=log_date_pattern,
     ):
 
-        logger.debug('Получили файл {}'.format(file))
+        logging.info('Получили файл {}'.format(file))
         name_log = log_name_pattern.search(file)
         log_date = log_date_pattern.search(
             name_log.group('date')
@@ -86,9 +83,9 @@ class Log:
         return log_date, log_extension
 
     def _find_log(self, log_dir):
-        logger.debug('Поиск лога в директории {}'.format(log_dir))
+        logging.info('Поиск лога в директории {}'.format(log_dir))
         for path, _, files in os.walk(log_dir, topdown=True):
-            logger.debug('В дерикории на ходятся файлы {}'.format(files))
+            logging.info('В дерикории на ходятся файлы {}'.format(files))
             for f in files:
                 try:
                     log_date, extension = self._parse_filename(f)
