@@ -10,17 +10,11 @@ from string import Template
 import re
 
 
-logging.basicConfig(
-        filename=None,
-        filemode='a',
-        level=logging.INFO,
-        format='[%(asctime)s] %(levelname).1s %(message)s',
-        )
 
 config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
-    'LOG_DIR': '/home/otus_student/log',
+    'LOG_DIR': './log',
 }
 
 
@@ -35,9 +29,7 @@ def get_cmd_argument(cmd_args):
     )
     return args_parser.parse_args(cmd_args)
 
-
 def get_file_config(user_config):
-    logging.info('Задан пользовательбский файл конфигурации {}'.format(user_config))
     if user_config is not None:
         file_config = {}
         with open(user_config, 'r') as f:
@@ -52,12 +44,29 @@ def get_file_config(user_config):
                 file_config = {}
         return file_config
 
-
 def merge_config(file_config, static_config):
-    logging.debug('Получен файл конфигурации {}'.format(file_config))
     for key in file_config:
         static_config[key] = file_config[key]
     return static_config
+
+def get_config(config):
+    args = get_cmd_argument(sys.argv[1:])
+    config_file = get_file_config(args.config)
+    if config_file is None:
+        config_file = {}
+    config = merge_config(config_file, config)
+    if 'LOG' not in config.keys():
+        config['LOG'] = None
+    return config
+
+
+config = get_config(config)
+logging.basicConfig(
+        filename=config['LOG'],
+        filemode='a',
+        level=logging.INFO,
+        format='[%(asctime)s] %(levelname).1s %(message)s',
+        )
 
 
 def write_report(template_file, report_file, data):
@@ -74,14 +83,13 @@ def get_report_file_path(report_dir, log_date):
 
 
 
-
 def main(**config):
-    logging.info('Создается объект Log')
+    logging.info('Поиск последнего лога в директори {}'.format(config['LOG_DIR']))
     with Log(config['LOG_DIR']) as log:
          
         if log.log_path is None:
             sys.exit(0)
-
+        logging.info('Найден лог {}'.format(log.log_path))
         report_file = get_report_file_path(
             config['REPORT_DIR'],
             log.log_date,
@@ -94,15 +102,12 @@ def main(**config):
         logging.info('Создается парсер лога')        
         parser = Parser(log)
         analyzer = Analyzer()
-        try:
-            for u, tr in parser:
-                logging.info('Для {} производится предварительный анализ'.format(u))
-                analyzer.get_temp_result(u, tr)
-        except KeyboardInterrupt:
-            pass
+        for u, tr in parser:
+            logging.info('Для {} производится предварительный анализ'.format(u))
+            analyzer.get_temp_result(u, tr)
+
     logging.info('Формируется итоговый результат')
     report = analyzer.get_final_result()
-    print(report)
 
     logging.info('Запись отчета в файл: {}'.format(report_file))
     write_report(
@@ -113,13 +118,11 @@ def main(**config):
     sys.exit(0)
 
 if __name__ == "__main__":
-    logging.info('Парсинг аргумениов командной строки')
-    args = get_cmd_argument(sys.argv[1:])
-    if args.config is not None:
-        config_file = get_file_config(args.config)
-        logging.info('Получен файл {}'.format(config_file))
-        logging.info('Слияние статического и польховательского конфигов')
-        config = merge_config(config_file, config)
+    logging.debug('Точка входа')
+    try:
         main(**config)
-    else:
-        main(**config)
+    except Exception  as e:
+        logging.exception(e)
+    except KeyboardInterrupt as e:
+        logging.exception(e)
+
