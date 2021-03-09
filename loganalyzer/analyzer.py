@@ -1,3 +1,10 @@
+def round_decorate(func):
+    def rounder(*args):
+        result = func(*args)
+        return round(result, 3)
+    return rounder
+
+
 class Analyzer:
     def __init__(self):
         self.result = []
@@ -19,12 +26,6 @@ class Analyzer:
                 'set_times_url': {float(request_time)},
             }
 
-    def round_decorate(func):
-        def rounder(*args):
-            result = func(*args)
-            return round(result, 3)
-        return rounder
-    
     @round_decorate
     def count_perc(self, url):
         count = self._temp_result[url]['count']
@@ -67,4 +68,9 @@ class Analyzer:
                     'time_med': self.time_med(url),
                 }
             )
+        self.result = sorted(
+            self.result,
+            reverse=True,
+            key=lambda d: d['time_sum'],
+        )
         return self.result
