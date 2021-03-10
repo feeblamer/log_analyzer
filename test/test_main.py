@@ -6,11 +6,12 @@ from loganalyzer.__main__ import get_file_config
 from loganalyzer.__main__ import get_report_file_path
 from datetime import date
 
+
 class TestCmdParsing(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.test_dir = 'test_dir'
+        cls.test_dir = 'test_dir_1'
         os.mkdir(cls.test_dir)
         os.chdir(cls.test_dir)
         cls.configs = {
@@ -122,29 +123,20 @@ LOG_DIR=log""",
 
 class TestReport(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.report_dir = './tets_report'
-        os.mkdir(report_dir)
-
-    @classmethod
-    def tearDownClass(cls):
-        pass
+    def setUp(self):
+        self.report_dir = './test_report'
 
     def test_get_report_file_path(self):
         log_date = date(2021, 12, 22)
         report_file = get_report_file_path(
-               cls.report_dir,
-                log_date, 
-                )
+            self.report_dir,
+            log_date,
+        )
         self.assertEqual(
-               report_file,
-               os.path.join(
-                   report_dir,
-                  'report-{}.html'.format(log_date.strftime('%Y.%m.%d')),
-                   ),
-                )
+            report_file,
+            os.path.join(
+                self.report_dir,
+                'report-{}.html'.format(log_date.strftime('%Y.%m.%d')),
+            ),
+        )
 
-
-    def test_write_report(self):
-        pass 

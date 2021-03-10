@@ -70,18 +70,6 @@ def get_config(config):
     return config
 
 
-# Получение итогового конфига
-config = get_config(config)
-# Конфигурирование логгера.
-# Если лог скрипта не указан config['LOG'] = None
-# Лог будет выводится в stdout.
-# При указаном логе лог записывается в файл.
-logging.basicConfig(
-        filename=config['LOG'],
-        filemode='a',
-        level=logging.INFO,
-        format='[%(asctime)s] %(levelname).1s %(message)s',
-        )
 
 
 def write_report(template_file, report_file, data, report_size):
@@ -142,6 +130,19 @@ def main(**config):
 
 
 if __name__ == "__main__":
+
+    # Получение итогового конфига
+    config = get_config(config)
+    # Конфигурирование логгера.
+    # Если лог скрипта не указан config['LOG'] = None
+    # Лог будет выводится в stdout.
+    # При указаном логе лог записывается в файл.
+    logging.basicConfig(
+        filename=config['LOG'],
+        filemode='a',
+        level=logging.INFO,
+        format='[%(asctime)s] %(levelname).1s %(message)s',
+    )
     try:
         main(**config)
     except Exception as e:
