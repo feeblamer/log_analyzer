@@ -36,5 +36,5 @@ class Parser:
             url = fields.group('url')
             request_time = fields.group('request_time')
             return url, request_time
-        except AttributeError as e:
+        except AttributeError:
             return None

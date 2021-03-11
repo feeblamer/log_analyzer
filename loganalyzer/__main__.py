@@ -1,3 +1,6 @@
+# Анализатор логов
+#
+
 from log import Log
 from parser import Parser
 from analyzer import Analyzer
@@ -70,9 +73,8 @@ def get_config(config):
     return config
 
 
-
-
 def write_report(template_file, report_file, data, report_size):
+    """Запись REPORT_SIZE строк в файл отчета."""
     with open(template_file, 'r') as file:
         template = Template(file.read())
     with open(report_file, 'wb') as report:
@@ -80,6 +82,7 @@ def write_report(template_file, report_file, data, report_size):
 
 
 def get_report_file_path(report_dir, log_date):
+    """Формиртует имя файла отчета и путь до него по имени анализируемого лога."""
     filename = 'report-{}.html'.format(log_date.strftime('%Y.%m.%d'))
     report_file_path = os.path.join(report_dir, filename)
     return report_file_path
@@ -97,11 +100,12 @@ def main(**config):
             config['REPORT_DIR'],
             log.log_date,
         )
+        
         #  Если файл отчета существет, то происходит выход из программы.
         if os.path.isfile(report_file):
             logging.info('Отчет для последнего лога существует: {}'.format(report_file))
             sys.exit(0)
-        
+        logging.info('Отчет будет сохранен в файл: {}'.format(report_file))
         logging.info('Создается парсер лога')
         # Создается объект парсера
         parser = Parser(log)

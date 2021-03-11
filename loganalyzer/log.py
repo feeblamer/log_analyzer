@@ -5,34 +5,33 @@ from datetime import date
 import logging 
 
 
-
 class Log:
     log_date_pattern = re.compile(
         r'(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})',
     )
     log_name_pattern = re.compile(
-        r'^nginx-access-ui.log-(?P<date>\d{8})(?P<ext>.gz){0,1}',
+        r'^nginx-access-ui.log-(?P<date>\d{8})(?=(?P<ext>.gz){0,1}$)',
     )
 
     def __init__(
             self,
             log_dir=None,
     ):
-        logging.info('Инициализация объекта и его атрибутов')
+        self.log_path = None
+        self.log_ext = None
+        self.log_date = date(1, 1, 1)
         if log_dir is not None:
             self.log_dir = log_dir
-            self.log_path = None
-            self.log_ext = None
-            self.log_date = date(1, 1, 1)
             self._find_log(log_dir)
 
     def _open_log(self):
-        opened_log = gzip.open(self.log_path, 'rb') if self.log_ext == '.gz' else open(self.log_path, 'rb')
-        return opened_log
+        """Открывает файл лога для парсинга."""
+        self.opened_log = gzip.open(self.log_path, 'rb') if self.log_ext == '.gz' else open(self.log_path, 'rb')
 
     def __enter__(self):
         if self.log_path is not None:
-            self.opened_log = self._open_log()
+            logging.info('Найден файл логов для анализа: {}'.format(self.log_path))
+            self._open_log()
         else:
             self.opened_log = None
             logging.info('Файл логов не найден')
@@ -67,7 +66,7 @@ class Log:
             log_name_pattern=log_name_pattern,
             log_date_pattern=log_date_pattern,
     ):
-
+        """Парсинг имени файла."""
         logging.info('Получили файл {}'.format(file))
         name_log = log_name_pattern.search(file)
         log_date = log_date_pattern.search(
@@ -83,9 +82,9 @@ class Log:
         return log_date, log_extension
 
     def _find_log(self, log_dir):
+        """Поиск файла лога для парсинга"""
         logging.info('Поиск лога в директории {}'.format(log_dir))
         for path, _, files in os.walk(log_dir, topdown=True):
-            logging.info('В дерикории на ходятся файлы {}'.format(files))
             for f in files:
                 try:
                     log_date, extension = self._parse_filename(f)
