@@ -17,6 +17,7 @@ config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
     'LOG_DIR': './log',
+    'ERROR_PERC': 50.0,
 }
 
 
@@ -118,7 +119,10 @@ def main(**config):
             # 'url1': {'count':xx, 'time_sum':xx, 'set_times':xxx},
             # }
             analyzer.get_temp_result(url, time_request)
-
+            if analyzer.errors_perc >= config['ERROR_PERC']:
+                logging.error('Превышен порог ошибок')
+                sys.exit(0)
+            logging.info('Порог ошибок {}%'.format(analyzer.errors_perc))
     logging.info('Формируется итоговый результат')
 
     report = analyzer.get_final_result()
