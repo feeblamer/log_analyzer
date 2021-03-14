@@ -11,6 +11,7 @@ import sys
 import logging
 from string import Template
 import re
+import traceback
 
 
 config = {
@@ -18,6 +19,7 @@ config = {
     'REPORT_DIR': './reports',
     'LOG_DIR': './log',
     'ERROR_PERC': 50.0,
+    'LOG': 'loganalyzer.log',
 }
 
 
@@ -112,17 +114,21 @@ def main(**config):
         parser = Parser(log)
         analyzer = Analyzer()
         # Для каждой строки лога парсер отдает url, time_request
+        logging.info('Производится предварительный анализ')
         for url, time_request in parser:
-            logging.info('Для {} производится предварительный анализ'.format(url))
             # Формируется предварительный результат для каждого url:
             # {
             # 'url1': {'count':xx, 'time_sum':xx, 'set_times':xxx},
             # }
-            analyzer.get_temp_result(url, time_request)
-            if analyzer.errors_perc >= config['ERROR_PERC']:
-                logging.error('Превышен порог ошибок')
-                sys.exit(0)
-            logging.info('Порог ошибок {}%'.format(analyzer.errors_perc))
+            try:
+                analyzer.get_temp_result(url, time_request)
+            except KeyboardInterrupt as e:
+                logging.exception(e)
+        # Проверка процента ошибок
+        if analyzer.errors_perc >= config['ERROR_PERC']:
+            logging.error('Превышен порог ошибок')
+            sys.exit(0)
+        logging.info('Порог ошибок {}%'.format(analyzer.errors_perc))
     logging.info('Формируется итоговый результат')
 
     report = analyzer.get_final_result()
@@ -140,11 +146,14 @@ def main(**config):
 if __name__ == "__main__":
 
     # Получение итогового конфига
-    config = get_config(config)
+    try:
+        config = get_config(config)
+    except FileNotFoundError as e:
+       logging.exception(e, exc_info=True) 
     # Конфигурирование логгера.
-    # Если лог скрипта не указан config['LOG'] = None
+    # Если лог скрипта не указан, то config['LOG'] = None
     # Лог будет выводится в stdout.
-    # При указаном логе лог записывается в файл.
+    # При указаном логе происходить запись в файл config['LOG'].
     logging.basicConfig(
         filename=config['LOG'],
         filemode='a',
@@ -154,6 +163,4 @@ if __name__ == "__main__":
     try:
         main(**config)
     except Exception as e:
-        logging.exception(e)
-    except KeyboardInterrupt as e:
-        logging.exception(e)
+        logging.exception(e, exc_info=True,)
