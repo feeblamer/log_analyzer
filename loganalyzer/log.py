@@ -6,6 +6,11 @@ import logging
 
 
 class Log:
+    """Класс Log итератор.
+
+    При инициализации экземпляра класса Log. Происходит поиск последнего лога в директории, указанной конструктору
+    класса. При нахождении файла пасится его имя, результаты записываются в атрибуты класса.
+    Объект класса Log нужно использовать с контекстным менеджором with. """
     log_date_pattern = re.compile(
         r'(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})',
     )
@@ -50,10 +55,10 @@ class Log:
         return self
 
     def __next__(self):
-        
+        """Возвращает строку лога."""
         if self.opened_log is not None:
             line = self.opened_log.__next__()
-            return line.decode('utf-8', 'replace')
+            return line.decode('utf-8')
         else:
             raise StopIteration
 

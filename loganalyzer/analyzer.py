@@ -39,14 +39,14 @@ class Analyzer:
     @round_decorate
     def count_perc(self, url):
         count = self._temp_result[url]['count']
-        result = count * 100 / self._count_requests
-        return result
+        percents = count * 100 / self._count_requests
+        return percents
 
     @round_decorate
     def time_perc(self, url):
         time_sum = self._temp_result[url]['time_sum']
-        result = time_sum * 100 / self._time_requests
-        return result
+        percents = time_sum * 100 / self._time_requests
+        return percents
 
     @round_decorate
     def time_avg(self, url):
@@ -57,10 +57,10 @@ class Analyzer:
     @round_decorate
     def time_med(self, url):
         list_times = list(self._temp_result[url]['set_times_url'])
-        list_times.sort(reverse=True)
+        list_times.sort()
         index = len(list_times) // 2
 
-        if len(list_times) % 2:
+        if len(list_times) % 2 != 0:
             return list_times[index]
         return sum(list_times[index - 1:index + 1]) / 2
 

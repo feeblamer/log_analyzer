@@ -83,7 +83,7 @@ def write_report(template_file, report_file, data, report_size):
 
 
 def get_report_file_path(report_dir, log_date):
-    """Формиртует имя файла отчета и путь до него по имени анализируемого лога."""
+    """Формирует имя файла отчета и путь до него по имени анализируемого лога."""
     filename = 'report-{}.html'.format(log_date.strftime('%Y.%m.%d'))
     report_file_path = os.path.join(report_dir, filename)
     return report_file_path
