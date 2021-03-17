@@ -2,10 +2,9 @@ __pycache__/
 *.swp
 .idea
 .thougths.md
-
-
+reports/
+loganalyzer.log
 loganalyzer/*.pyc
 
-loganalyzer/__pycache__/
-
+loganalyzer/__pycache__
 .files/

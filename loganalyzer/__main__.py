@@ -1,8 +1,7 @@
 # Анализатор логов
 #
-
-from log import Log
-from parser import Parser
+import gzip
+from collections import namedtuple
 from analyzer import Analyzer
 import argparse
 import json
@@ -11,7 +10,7 @@ import sys
 import logging
 from string import Template
 import re
-import traceback
+from datetime import date
 
 
 config = {
@@ -19,11 +18,25 @@ config = {
     'REPORT_DIR': './reports',
     'LOG_DIR': './log',
     'ERROR_PERC': 50.0,
-    'LOG': 'loganalyzer.log',
+    # 'LOG': 'loganalyzer.log',
 }
 
+filename_pattern = re.compile(
+    r'^nginx-access-ui.log-'
+    r'(?P<year>\d{4})'
+    r'(?P<month>\d{2})'
+    r'(?P<day>\d{2})'
+    r'(?=(?P<ext>.gz){0,1}$)'
+)
 
+line_pattern = re.compile(
+    r'"(?P<request>(?P<method>GET|POST)\s(?P<url>[\w\d\S]+)\s([\w\d\S]+))"'
+    r'[\s\S]+'
+    r'(?P<request_time>\d.\d{3}$)'
+)
 report_template = './report.html'
+
+Log = namedtuple('Log', ['path', 'date', 'ext'])
 
 
 # Получение и обработка аргументов командной строки
@@ -37,7 +50,7 @@ def get_cmd_argument(cmd_args):
     return args_parser.parse_args(cmd_args)
 
 
-def get_file_config(user_config):
+def parse_file_config(user_config):
     """Парсит заданный пользовательем конфигурационный файл."""
     if user_config is not None:
         file_config = {}
@@ -54,29 +67,27 @@ def get_file_config(user_config):
         return file_config
 
 
-def merge_config(file_config, static_config):
-    """Слияине пользовательского конфигурационного файла и конфига указаонго в config в данном скрипте."""
-    for key in file_config:
-        static_config[key] = file_config[key]
-    return static_config
-
-
 def get_config(config):
     """Возвращает итоговый конфиг.
 
     Происходит парсинг аргументов команодной строки.
     Cлияние конфигов. В итоговый конфиг включается поле LOG данного скрипта(loganalyzer)"""
     args = get_cmd_argument(sys.argv[1:])
-    config_file = get_file_config(args.config)
+    config_file = parse_file_config(args.config)
     if config_file is None:
         config_file = {}
-    config = merge_config(config_file, config)
+    config.update(config_file)
     if 'LOG' not in config.keys():
         config['LOG'] = None
     return config
 
 
-def write_report(template_file, report_file, data, report_size):
+def write_report(
+        template_file,
+        report_file,
+        data,
+        report_size,
+):
     """Запись REPORT_SIZE строк в файл отчета."""
     with open(template_file, 'r') as file:
         template = Template(file.read())
@@ -91,55 +102,95 @@ def get_report_file_path(report_dir, log_date):
     return report_file_path
 
 
-def main(**config):
-    logging.info('Поиск последнего лога в директори {}'.format(config['LOG_DIR']))
-    with Log(config['LOG_DIR']) as log:
-        # Если файл последнего лога не существует, просиходит выход.
-        if log.log_path is None:
-            sys.exit(0)
-        logging.info('Найден лог {}'.format(log.log_path))
-        # Определяется файл отчета и путь до него
-        report_file = get_report_file_path(
-            config['REPORT_DIR'],
-            log.log_date,
-        )
-        
-        #  Если файл отчета существет, то происходит выход из программы.
-        if os.path.isfile(report_file):
-            logging.info('Отчет для последнего лога существует: {}'.format(report_file))
-            sys.exit(0)
-        logging.info('Отчет будет сохранен в файл: {}'.format(report_file))
-        logging.info('Создается парсер лога')
-        # Создается объект парсера
-        parser = Parser(log)
-        analyzer = Analyzer()
-        # Для каждой строки лога парсер отдает url, time_request
-        logging.info('Производится предварительный анализ')
-        for url, time_request in parser:
-            # Формируется предварительный результат для каждого url:
-            # {
-            # 'url1': {'count':xx, 'time_sum':xx, 'set_times':xxx},
-            # }
-            try:
-                analyzer.get_temp_result(url, time_request)
-            except KeyboardInterrupt as e:
-                logging.exception(e)
-        # Проверка процента ошибок
-        if analyzer.errors_perc >= config['ERROR_PERC']:
-            logging.error('Превышен порог ошибок')
-            sys.exit(0)
-        logging.info('Порог ошибок {}%'.format(analyzer.errors_perc))
-    logging.info('Формируется итоговый результат')
+def get_date(match):
+    if match is None:
+        return None
+    return date.fromisoformat('{}-{}-{}'.format(
+        match.group('year'),
+        match.group('month'),
+        match.group('day'),
+    )
+    )
 
+
+def get_log(log_dir, regexp=filename_pattern):
+    """Поиск файла лога."""
+    latest_date = date(1, 1, 1)
+    log = Log(None, None, None)
+    for path, _, files in os.walk(log_dir, topdown=True):
+        for f in files:
+            match = regexp.search(f)
+            log_date = get_date(match)
+            if match and log_date > latest_date:
+                latest_date = log_date
+                log = Log(
+                    os.path.join(path, f),
+                    latest_date,
+                    match.group('ext'),
+                )
+                continue
+            else:
+                continue
+    return log
+
+
+def parse_log(log: Log, regexp=line_pattern):
+    if log.ext == '.gz':
+        f = gzip.open(log.path, 'rb')
+    else:
+        f = open(log.path, 'rb')
+    for line in f:
+        try:
+            match = regexp.search(
+                line.decode('utf-8')
+            )
+            yield match.group('url'), match.group('request_time')
+        except AttributeError:
+            yield '-', '0.0'
+
+
+def main(config):
+    log = get_log(config['LOG_DIR'])
+    if log.path is None:
+        sys.exit(0)
+    report_file = get_report_file_path(
+        config['REPORT_DIR'],
+        log.date,
+    )
+
+    #  Если файл отчета существет, то происходит выход из программы.
+    if os.path.isfile(report_file):
+        logging.info('Отчет для последнего лога существует: {}'.format(report_file))
+        sys.exit(0)
+    logging.info('Отчет будет сохранен в файл: {}'.format(report_file))
+    parser = parse_log(log)  # generator
+    analyzer = Analyzer()
+    # Для каждой строки лога парсер отдает url, time_request
+    logging.info('Производится предварительный анализ')
+    for url, time_request in parser:
+        # Формируется предварительный результат для каждого url:
+        # {
+        # 'url1': {'count':xx, 'time_sum':xx, 'set_times':xxx},
+        # }
+        try:
+            analyzer.get_temp_result(url, time_request)
+        except KeyboardInterrupt as e:
+            logging.exception(e)
+    # Проверка процента ошибок
+    if analyzer.errors_perc >= config['ERROR_PERC']:
+        logging.error('Превышен порог ошибок')
+        sys.exit(0)
+    logging.info('Порог ошибок {}%'.format(analyzer.errors_perc))
+    logging.info('Формируется итоговый результат')
     report = analyzer.get_final_result()
 
     logging.info('Запись отчета в файл: {}'.format(report_file))
     write_report(
-            report_template,
-            report_file,
-            report,
-            config['REPORT_SIZE'],
-        )
+        report_template,
+        report_file,
+        report,
+        config['REPORT_SIZE'],
+    )
     sys.exit(0)
 
 
@@ -149,7 +200,7 @@ if __name__ == "__main__":
     try:
         config = get_config(config)
     except FileNotFoundError as e:
-       logging.exception(e, exc_info=True) 
+        logging.exception(e)
     # Конфигурирование логгера.
     # Если лог скрипта не указан, то config['LOG'] = None
     # Лог будет выводится в stdout.
@@ -161,6 +212,6 @@ if __name__ == "__main__":
         format='[%(asctime)s] %(levelname).1s %(message)s',
     )
     try:
-        main(**config)
+        main(config)
     except Exception as e:
-        logging.exception(e, exc_info=True,)
+        logging.exception(e)

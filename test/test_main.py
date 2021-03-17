@@ -1,10 +1,12 @@
 import unittest
 import os
-from loganalyzer.__main__ import get_cmd_argument
-from loganalyzer.__main__ import merge_config
-from loganalyzer.__main__ import get_file_config
-from loganalyzer.__main__ import get_report_file_path
 from datetime import date
+import gzip
+from loganalyzer.__main__ import get_cmd_argument
+from loganalyzer.__main__ import parse_file_config
+from loganalyzer.__main__ import get_report_file_path
+from loganalyzer.__main__ import get_log
+from loganalyzer.__main__ import parse_log
 
 
 class TestCmdParsing(unittest.TestCase):
@@ -52,7 +54,7 @@ LOG_DIR=log""",
         )
 
     def test_get_file_config_1(self):
-        config = get_file_config('config_1')
+        config = parse_file_config('config_1')
         self.assertEqual(
             config,
             {
@@ -62,61 +64,27 @@ LOG_DIR=log""",
         )
 
     def test_get_file_config_2(self):
-        config = get_file_config('config_2')
+        config = parse_file_config('config_2')
         self.assertEqual(
             config,
             {'LOG_DIR': 'log'},
         )
 
     def test_get_file_config_3(self):
-        config = get_file_config('config_3')
+        config = parse_file_config('config_3')
         self.assertEqual(
             config,
             {},
         )
 
     def test_get_file_config_4(self):
-        config = get_file_config('config_4')
+        config = parse_file_config('config_4')
         self.assertEqual(
             config,
             {
                 'REPORT_SIZE': 200,
                 'REPORT_DIR': './report',
                 'LOG_DIR': 'log',
-            },
-        )
-
-    def test_merge_config_1(self):
-        config = {
-            'REPORT_SIZE': 1000,
-            'REPORT_DIR': './reports',
-            'LOG_DIR': './log',
-        }
-        file_config = get_file_config('config_1')
-        merged_conf = merge_config(file_config, config)
-        self.assertEqual(
-            merged_conf,
-            {
-                'REPORT_SIZE': 100,
-                'REPORT_DIR': './reports',
-                'LOG_DIR': './log/log',
-            },
-        )
-
-    def test_merge_config_3(self):
-        config = {
-            'REPORT_SIZE': 1000,
-            'REPORT_DIR': './reports',
-            'LOG_DIR': './log',
-        }
-        file_config = get_file_config('config_3')
-        merged_conf = merge_config(file_config, config)
-        self.assertEqual(
-            merged_conf,
-            {
-                'REPORT_SIZE': 1000,
-                'REPORT_DIR': './reports',
-                'LOG_DIR': './log',
             },
         )
 
@@ -140,3 +108,23 @@ class TestReport(unittest.TestCase):
             ),
         )
 
+
+class TestGetLog(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.test_dir = 'test_dir_2'
+        os.mkdir(cls.test_dir)
+        os.chdir(cls.test_dir)
+        with open('nginx-access-ui.log-20170630', 'wb') as log:
+            log.write('log1'.encode('utf-8'))
+
+        with gzip.open('nginx-access-ui.log-20201203.gz', 'wb') as log:
+            log.write('log2'.encode('utf-8'))
+
+        with open('nginx-access-ui.log-20201204.bz2', 'wb') as log:
+            log.write('not log'.encode('utf-8'))
+
+
+class TestParseLog(unittest.TestCase):
+    pass
