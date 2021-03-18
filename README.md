@@ -17,3 +17,18 @@
 Тесты запускаются из пакета **loganalyzer** (там где **__main__.py** и **__init__.py**) командой:
 
     python -m unittest discover -s '..'
+
+## Проверка
+
+### Успешный запуск
+
+![Успешный запуск](https://i.imgur.com/rExtUdj.png)
+
+### Повторный запуск
+
+![Повторный запуск](https://i.imgur.com/m1HWXD4.png)
+
+### Лог не найден
+
+![Лог не найден](https://i.imgur.com/5T09CSc.png)
+
