@@ -134,7 +134,7 @@ def get_log(log_dir, regexp=filename_pattern):
     return log
 
 
-def parse_log(log: Log, regexp=line_pattern):
+def parse_log(log, regexp=line_pattern):
     if log.ext == '.gz':
         f = gzip.open(log.path, 'rb')
     else:
@@ -147,6 +147,7 @@ def parse_log(log: Log, regexp=line_pattern):
             yield match.group('url'), match.group('request_time')
         except AttributeError:
             yield '-', '0.0'
+    f.close()
 
 
 def main(config):
