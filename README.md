@@ -32,3 +32,6 @@
 
 ![Лог не найден](https://i.imgur.com/5T09CSc.png)
 
+### Запуск тестов
+
+![Тесты](https://imgur.com/yhx7omx.png)
